@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLOv8 Multi-Class Detector</title>
+    <style>
+        body { font-family: sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+        .container { display: flex; flex-direction: column; gap: 15px; }
+        #results { margin-top: 20px; padding: 10px; background: #f4f4f4; border-radius: 4px; min-height: 50px; }
+        .loading { color: #007bff; font-weight: bold; }
+        button { cursor: pointer; padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; }
+        button:disabled { background: #ccc; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Object Detection Test</h2>
+        <input type="file" id="imageInput" accept="image/*">
+        <button id="uploadBtn">Detect Classes</button>
+
+        <div id="results">
+            <strong>Detected Classes:</strong>
+            <ul id="classList"></ul>
+        </div>
+    </div>
+
+    <script>
+        const uploadBtn = document.getElementById('uploadBtn');
+        const imageInput = document.getElementById('imageInput');
+        const classList = document.getElementById('classList');
+
+        uploadBtn.addEventListener('click', async () => {
+            if (!imageInput.files[0]) {
+                alert("Please select an image first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', imageInput.files[0]);
+
+            // UI Feedback
+            classList.innerHTML = '<li class="loading">Processing...</li>';
+            uploadBtn.disabled = true;
+
+            try {
+                const response = await fetch('http://localhost:8000/detect-classes', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Server error');
+
+                const data = await response.json();
+                
+                // Clear and Print results
+                classList.innerHTML = '';
+                if (data.detected_classes.length === 0) {
+                    classList.innerHTML = '<li>No objects detected.</li>';
+                } else {
+                    data.detected_classes.forEach(className => {
+                        const li = document.createElement('li');
+                        li.textContent = className;
+                        classList.appendChild(li);
+                    });
+                }
+            } catch (error) {
+                classList.innerHTML = `<li style="color:red">Error: ${error.message}</li>`;
+            } finally {
+                uploadBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
